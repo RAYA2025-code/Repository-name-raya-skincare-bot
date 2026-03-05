@@ -187,13 +187,14 @@ def run_push_job():
 
     success_count = 0
     for user_id, info in user_db.items():
-        # ⭐ 關鍵邏輯：檢查訂閱狀態
-        is_subscribed = info.get("subscribed", True) # 沒寫的話預設 True 以相容舊資料
+        # 關鍵邏輯：檢查訂閱狀態
+        is_subscribed = info.get("subscribed", True) 
         
         if not is_subscribed:
             print(f"⏭️ 跳過用戶 {user_id} (已取消訂閱)")
             continue
 
+        # --- 修正後的 try 區塊開始 ---
         try:
             location = info.get("location", "台北")
             coords = LOCATION_COORDINATES.get(location, LOCATION_COORDINATES["台北"])
@@ -201,26 +202,33 @@ def run_push_job():
             
             selected = select_content(datetime.now(), weather, content_libs, used_ids)
             
-if selected:
+            if selected:
                 final_msg = format_message(selected)
                 line_bot_api.push_message(user_id, TextSendMessage(text=final_msg))
                 success_count += 1
                 
-                # 更新今日日誌
+                # 更新今日日誌紀錄內容
                 today_str = datetime.now().strftime("%Y-%m-%d")
                 cid = selected["composite_id"].split('-')
                 usage_log["usage_history"][today_str] = {
-                    "core_strategy_id": cid[0], "third_module_id": cid[1], "quote_id": f"{cid[2]}-{cid[3]}"}
+                    "core_strategy_id": cid[0], 
+                    "third_module_id": cid[1], 
+                    "quote_id": f"{cid[2]}-{cid[3]}"
+                }
                 
-                # ✅ 優化：每成功發送一次就存檔，確保紀錄即時更新
+                # ✅ 每成功發送一人就立即寫入 JSON 存檔 (優化縮排)
                 with open(LOG_FILE, 'w', encoding='utf-8') as f:
                     json.dump(usage_log, f, ensure_ascii=False, indent=2)
                 
                 print(f"✅ 已發送並存檔：{user_id} ({location})")
-        except Exception as e:
-            print(f"❌ 發送失敗 {user_id}: {e}")
+            else:
+                print(f"⚠️ 無法為用戶 {user_id} 生成不重複內容")
 
-    # 原本在最下面的這兩行就可以刪掉或保持留空了
+        except Exception as e:
+            # 這是原本報錯說找不到的區塊，現在已經對齊了
+            print(f"❌ 發送失敗 {user_id}: {e}")
+        # --- try 區塊結束 ---
+
     print(f"🎉 任務完成，成功推播人數：{success_count}")
 
     with open(LOG_FILE, 'w', encoding='utf-8') as f:
