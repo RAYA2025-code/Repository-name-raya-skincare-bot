@@ -155,7 +155,7 @@ def handle_location_change(user_id: str, text: str) -> Optional[str]:
 # Webhook 路由
 # ============================================================================
 
-@app.route("/callback", methods=["POST"])
+@app.route("/callback", methods=['POST'])
 def callback():
     """LINE Webhook 回調"""
     signature = request.headers.get("X-Line-Signature", "")
