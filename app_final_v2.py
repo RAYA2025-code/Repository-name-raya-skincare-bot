@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.11
 # -*- coding: utf-8 -*-
+from filelock import FileLock
 
 """
 RAYA 迷你肌膚日報 - LINE Webhook 互動引擎 v2.1
@@ -54,9 +55,11 @@ def load_user_db() -> Dict:
         return {}
 
 def save_user_db(db: Dict):
-    """保存用戶地區數據庫"""
-    with open(USER_DB_FILE, 'w', encoding='utf-8') as f:
-        json.dump(db, f, ensure_ascii=False, indent=2)
+    """保存用戶地區數據庫 (加入檔案鎖防護)"""
+    lock = FileLock(f"{USER_DB_FILE}.lock")
+    with lock:
+        with open(USER_DB_FILE, 'w', encoding='utf-8') as f:
+            json.dump(db, f, ensure_ascii=False, indent=2)
 
 def get_user_location(user_id: str) -> Optional[str]:
     """獲取用戶設定的地區"""
