@@ -28,8 +28,14 @@ else:
 LOG_FILE = os.path.join(BASE_DIR, "usage_log.json")
 USER_DB_FILE = os.path.join(BASE_DIR, "user_locations.json")
 
-# 初始化 LINE API
+# 修改後的樣子
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+
+if not LINE_CHANNEL_ACCESS_TOKEN:
+    print("❌ 錯誤：找不到環境變數 LINE_CHANNEL_ACCESS_TOKEN")
+    print("💡 請至 Railway 控制台的 Variables 頁面新增此變數。")
+    exit(1) # 沒鑰匙就直接停止，不要崩潰
+
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 
 # 地區座標映射
