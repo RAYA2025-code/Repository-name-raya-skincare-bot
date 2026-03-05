@@ -35,8 +35,9 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 # ============================================================================
 # 用戶數據庫（簡化版，實際應使用 MySQL / MongoDB）
 # ============================================================================
-
-USER_DB_FILE = "/home/ubuntu/user_locations.json"
+# 同樣使用自動獲取路徑的方法
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+USER_DB_FILE = os.path.join(BASE_DIR, "user_locations.json")
 
 def load_user_db() -> Dict:
     """加載用戶地區數據庫"""
