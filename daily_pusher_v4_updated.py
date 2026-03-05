@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-RAYA 迷你肌膚日報 v4.1 - 每日推播核心系統
-支持用戶自定義地區
+RAYA 迷你肌膚日報 v4.2 - 每日推播核心系統 (自動任務版)
+支援：用戶分區推播、訂閱狀態過濾、內容不重複機制
 """
 
 import json
@@ -13,14 +13,24 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 import requests
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
 
 # ============================================================================
 # 全局配置
 # ============================================================================
-# 自動獲取目前程式碼所在的資料夾路徑
-CONTENT_PATH = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE = os.path.join(CONTENT_PATH, "usage_log.json")
-USER_DB_FILE = os.path.join(CONTENT_PATH, "user_locations.json")
+# 優先偵測 Railway Volume 持久化路徑，否則使用目前路徑
+if os.path.exists("/app/data"):
+    BASE_DIR = "/app/data"
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+LOG_FILE = os.path.join(BASE_DIR, "usage_log.json")
+USER_DB_FILE = os.path.join(BASE_DIR, "user_locations.json")
+
+# 初始化 LINE API
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 
 # 地區座標映射
 LOCATION_COORDINATES = {
@@ -43,11 +53,10 @@ LOCATION_COORDINATES = {
 }
 
 # ============================================================================
-# 用戶數據庫操作
+# 資料加載
 # ============================================================================
 
 def load_user_db() -> Dict:
-    """加載用戶地區數據庫"""
     if not os.path.exists(USER_DB_FILE):
         return {}
     try:
@@ -56,25 +65,17 @@ def load_user_db() -> Dict:
     except (json.JSONDecodeError, FileNotFoundError):
         return {}
 
-def get_user_location(user_id: str) -> str:
-    """獲取用戶設定的地區，預設為台北"""
-    db = load_user_db()
-    return db.get(user_id, {}).get("location", "台北")
-
-# ============================================================================
-# 內容庫加載
-# ============================================================================
-
 def load_content_libraries() -> Optional[Dict]:
-    """加載所有 V4 內容庫"""
     try:
-        with open(os.path.join(CONTENT_PATH, "core_strategies_v2.json"), 'r', encoding='utf-8') as f:
+        # 內容文件通常跟隨程式碼部署，不一定在 Volume
+        CODE_DIR = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(CODE_DIR, "core_strategies_v2.json"), 'r', encoding='utf-8') as f:
             core_strategies = json.load(f)
-        with open(os.path.join(CONTENT_PATH, "philosophy_quotes_100_v2.json"), 'r', encoding='utf-8') as f:
+        with open(os.path.join(CODE_DIR, "philosophy_quotes_100_v2.json"), 'r', encoding='utf-8') as f:
             quotes = json.load(f)
-        with open(os.path.join(CONTENT_PATH, "third_modules_v2.json"), 'r', encoding='utf-8') as f:
+        with open(os.path.join(CODE_DIR, "third_modules_v2.json"), 'r', encoding='utf-8') as f:
             third_modules = json.load(f)
-        with open(os.path.join(CONTENT_PATH, "greetings_v2.json"), 'r', encoding='utf-8') as f:
+        with open(os.path.join(CODE_DIR, "greetings_v2.json"), 'r', encoding='utf-8') as f:
             greetings = json.load(f)
 
         return {
@@ -83,54 +84,23 @@ def load_content_libraries() -> Optional[Dict]:
             "third_modules": third_modules,
             "greetings": greetings,
         }
-    except FileNotFoundError as e:
-        print(f"❌ 內容庫文件未找到: {e}")
-        return None
     except Exception as e:
         print(f"❌ 加載內容庫失敗: {e}")
         return None
 
 # ============================================================================
-# 天氣 API
+# 天氣與邏輯
 # ============================================================================
 
 def get_weather_data(latitude: float, longitude: float, city: str) -> Dict:
-    """
-    從 OpenWeather API 獲取天氣數據
+    api_key = os.getenv("WEATHER_API_KEY")
+    if not api_key:
+        return {"temp_max": 25, "temp_min": 20, "feels_like": 23, "humidity": 60, "uvi": 5, "aqi": 40, "city": city}
     
-    Args:
-        latitude: 緯度
-        longitude: 經度
-        city: 城市名稱（用於顯示）
-    
-    Returns:
-        天氣數據字典
-    """
     try:
-        api_key = os.getenv("WEATHER_API_KEY")
-        if not api_key:
-            print("⚠️ 未設定 WEATHER_API_KEY，使用模擬數據")
-            return {
-                "temp_max": 28,
-                "temp_min": 22,
-                "feels_like": 26,
-                "humidity": 65,
-                "uvi": 6,
-                "aqi": 45,
-                "city": city,
-            }
-        
         url = "https://api.openweathermap.org/data/2.5/weather"
-        params = {
-            'lat': latitude,
-            'lon': longitude,
-            'appid': api_key,
-            'units': 'metric'
-        }
-        
+        params = {'lat': latitude, 'lon': longitude, 'appid': api_key, 'units': 'metric'}
         response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        
         data = response.json()
         return {
             "temp_max": data['main']['temp_max'],
@@ -141,218 +111,110 @@ def get_weather_data(latitude: float, longitude: float, city: str) -> Dict:
             "aqi": data.get('aqi', 0),
             "city": city,
         }
-    except Exception as e:
-        print(f"⚠️ 天氣 API 調用失敗: {e}，使用模擬數據")
-        return {
-            "temp_max": 28,
-            "temp_min": 22,
-            "feels_like": 26,
-            "humidity": 65,
-            "uvi": 6,
-            "aqi": 45,
-            "city": city,
-        }
-
-# ============================================================================
-# 已使用內容追蹤
-# ============================================================================
-
-def load_usage_log() -> Dict:
-    """加載已使用內容日誌"""
-    if not os.path.exists(LOG_FILE):
-        return {"usage_history": {}}
-    try:
-        with open(LOG_FILE, 'r', encoding='utf-8') as f:
-            log = json.load(f)
-            one_year_ago = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
-            log["usage_history"] = {
-                date: ids
-                for date, ids in log["usage_history"].items()
-                if date >= one_year_ago
-            }
-            return log
-    except (json.JSONDecodeError, FileNotFoundError):
-        return {"usage_history": {}}
-
-def save_usage_log(log: Dict):
-    """保存已使用內容日誌"""
-    with open(LOG_FILE, 'w', encoding='utf-8') as f:
-        json.dump(log, f, ensure_ascii=False, indent=2)
-
-def get_used_ids(log: Dict) -> set:
-    """獲取所有在一年內已使用的內容 ID"""
-    used_ids = set()
-    for date, ids in log["usage_history"].items():
-        composite_id = f'{ids["core_strategy_id"]}-{ids["third_module_id"]}-{ids["quote_id"]}'
-        used_ids.add(composite_id)
-    return used_ids
-
-# ============================================================================
-# 內容選擇邏輯
-# ============================================================================
+    except:
+        return {"temp_max": 25, "temp_min": 20, "feels_like": 23, "humidity": 60, "uvi": 5, "aqi": 40, "city": city}
 
 def determine_weather_scenario(weather: Dict) -> str:
-    """根據天氣數據判斷天氣情境"""
-    if weather["aqi"] >= 100:
-        return "pollution"
-    if weather["temp_max"] >= 28:
-        return "wet_heat" if weather["humidity"] > 60 else "dry_heat"
-    if weather["temp_max"] < 15:
-        return "wet_cold" if weather["humidity"] > 60 else "dry_cold"
+    if weather["aqi"] >= 100: return "pollution"
+    if weather["temp_max"] >= 28: return "wet_heat" if weather["humidity"] > 60 else "dry_heat"
+    if weather["temp_max"] < 15: return "wet_cold" if weather["humidity"] > 60 else "dry_cold"
     return "seasonal"
 
-def select_third_module(today: datetime, weather_scenario: str, content_libs: Dict) -> Tuple[str, Dict]:
-    """根據觸發邏輯選擇第三模組"""
-    weekday = today.weekday()
-
-    if weekday == 0:  # Monday
-        return "週肌膚儀表盤", random.choice(content_libs["third_modules"]["weekly_rhythm"]["monday"])
-    if weekday == 6:  # Sunday
-        return "週肌膚儀表盤", random.choice(content_libs["third_modules"]["weekly_rhythm"]["sunday"])
-
-    if random.random() < 0.5:
-        return "皮膚科學快訊", random.choice(content_libs["third_modules"]["skincare_science"])
-    else:
-        return "肌膚生活智庫", random.choice(content_libs["third_modules"]["skincare_lifestyle"])
-
-def select_content(today: datetime, weather: Dict, content_libs: Dict, used_composite_ids: set) -> Optional[Dict]:
-    """選擇所有內容模組，確保組合是唯一的"""
-    weather_scenario = determine_weather_scenario(weather)
-
-    greeting_candidates = content_libs["greetings"].get(weather_scenario, []) + content_libs["greetings"]["general"]
-    greeting = random.choice(greeting_candidates)
-
-    for _ in range(100):
-        core_strategy = random.choice(content_libs["core_strategies"][weather_scenario])
-        third_module_title, third_module = select_third_module(today, weather_scenario, content_libs)
-        
-        if third_module_title == "肌膚SOS":
-            quote_style = random.choice(['yang_mi_inspired', 'carina_lau_inspired'])
-        elif third_module_title == "皮膚科學快訊":
-            quote_style = 'yang_mi_inspired'
+def select_content(today: datetime, weather: Dict, content_libs: Dict, used_ids: set) -> Optional[Dict]:
+    scenario = determine_weather_scenario(weather)
+    greeting = random.choice(content_libs["greetings"].get(scenario, []) + content_libs["greetings"]["general"])
+    
+    # 嘗試 50 次尋找不重複組合
+    for _ in range(50):
+        core = random.choice(content_libs["core_strategies"][scenario])
+        weekday = today.weekday()
+        if weekday == 0:
+            tm_title, tm = "週肌膚儀表盤", random.choice(content_libs["third_modules"]["weekly_rhythm"]["monday"])
+        elif weekday == 6:
+            tm_title, tm = "週肌膚儀表盤", random.choice(content_libs["third_modules"]["weekly_rhythm"]["sunday"])
         else:
-            quote_style = random.choice(['user_themes_inspired', 'original_healing_quotes'])
+            tm_title, tm = ("皮膚科學快訊", random.choice(content_libs["third_modules"]["skincare_science"])) if random.random() < 0.5 \
+                           else ("肌膚生活智庫", random.choice(content_libs["third_modules"]["skincare_lifestyle"]))
         
-        quote_candidates = content_libs["quotes"][quote_style]["quotes"]
-        quote = random.choice(quote_candidates)
-
-        composite_id = f'{core_strategy["id"]}-{third_module["id"]}-{quote_style}-{quote_candidates.index(quote)}'
-
-        if composite_id not in used_composite_ids:
-            return {
-                "greeting": greeting,
-                "weather": weather,
-                "core_strategy": core_strategy,
-                "third_module_title": third_module_title,
-                "third_module": third_module,
-                "quote": quote,
-                "composite_id": composite_id,
-            }
+        quote_style = 'yang_mi_inspired' if tm_title == "皮膚科學快訊" else 'original_healing_quotes'
+        quotes_list = content_libs["quotes"][quote_style]["quotes"]
+        quote = random.choice(quotes_list)
+        
+        comp_id = f"{core['id']}-{tm['id']}-{quote_style}-{quotes_list.index(quote)}"
+        if comp_id not in used_ids:
+            return {"greeting": greeting, "weather": weather, "core_strategy": core, "third_module_title": tm_title, "third_module": tm, "quote": quote, "composite_id": comp_id}
     return None
 
-# ============================================================================
-# 訊息格式化
-# ============================================================================
-
 def format_message(content: Dict) -> str:
-    """將選擇的內容格式化為最終的推播訊息"""
-    weather = content["weather"]
-    today_str = datetime.now().strftime("%m/%d")
-
-    message = f'{content["greeting"]}\n'
-    message += f'RAYA | {weather["city"]} {today_str} 肌膚日報\n\n'
-    message += f'🌡 氣溫 {weather["temp_max"]}°C / {weather["temp_min"]}°C\n'
-    message += f'🌤 體感 {weather["feels_like"]}°C\n'
-    message += f'💧 濕度 {weather["humidity"]}%\n'
-    message += f'☀️ 紫外線 {weather["uvi"]}\n'
-    message += f'🍃 空氣 AQI {weather["aqi"]}\n\n'
-    message += f'｜核心肌膚對策｜\n• {content["core_strategy"]["content"]}\n\n'
-    message += f'｜今日建議動作｜\n'
-    for action in content["core_strategy"]["actions"]:
-        message += f'✓ {action}\n'
-    message += f'\n｜{content["third_module_title"]}｜\n{content["third_module"]["content"]}\n\n'
-    message += f'{content["quote"]}\n'
-    message += "RAYA—有感的肌膚進化"
-
-    return message
+    w = content["weather"]
+    msg = f"{content['greeting']}\nRAYA | {w['city']} {datetime.now().strftime('%m/%d')} 肌膚日報\n\n"
+    msg += f"🌡 {w['temp_max']}°C / {w['temp_min']}°C | 體感 {w['feels_like']}°C\n💧 濕度 {w['humidity']}% | ☀️ 紫外線 {w['uvi']}\n\n"
+    msg += f"｜核心肌膚對策｜\n• {content['core_strategy']['content']}\n\n｜今日建議動作｜\n"
+    msg += "\n".join([f"✓ {a}" for a in content['core_strategy']['actions']])
+    msg += f"\n\n｜{content['third_module_title']}｜\n{content['third_module']['content']}\n\n"
+    msg += f"{content['quote']}\nRAYA—有感的肌膚進化 💚"
+    return msg
 
 # ============================================================================
-# 主執行函數
+# 推播任務
 # ============================================================================
 
-def generate_daily_message_for_user(user_id: str, content_libs: Dict) -> Optional[str]:
-    """為特定用戶生成每日肌膚日報"""
-    # 1. 獲取用戶設定的地區
-    location = get_user_location(user_id)
-    print(f"👤 用戶 {user_id} 的地區：{location}")
+def run_push_job():
+    """核心推播任務：掃描用戶資料庫並過濾訂閱者"""
+    print(f"⏰ 推播任務啟動：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    # 2. 獲取地區座標
-    if location not in LOCATION_COORDINATES:
-        print(f"⚠️ 地區 {location} 不在支持列表中，使用台北座標")
-        location = "台北"
-    
-    coords = LOCATION_COORDINATES[location]
-    
-    # 3. 獲取天氣數據
-    weather_data = get_weather_data(coords["lat"], coords["lon"], location)
-    print(f"🌤️ 獲取到 {location} 天氣：{weather_data['temp_max']}°C")
-    
-    # 4. 加載使用日誌
-    usage_log = load_usage_log()
-    used_composite_ids = get_used_ids(usage_log)
-    
-    # 5. 選擇獨特的內容組合
-    today = datetime.now()
-    selected_content = select_content(today, weather_data, content_libs, used_composite_ids)
-    
-    if not selected_content:
-        print("❌ 無法生成獨特的內容組合")
-        return None
-    
-    # 6. 格式化最終訊息
-    final_message = format_message(selected_content)
-    
-    # 7. 更新使用日誌
-    today_str = today.strftime("%Y-%m-%d")
-    composite_id_parts = selected_content["composite_id"].split('-')
-    usage_log["usage_history"][today_str] = {
-        "core_strategy_id": composite_id_parts[0],
-        "third_module_id": composite_id_parts[1],
-        "quote_id": f'{composite_id_parts[2]}-{composite_id_parts[3]}'
-    }
-    save_usage_log(usage_log)
-    
-    return final_message
-
-def main():
-    """主執行函數"""
-    print("🚀 開始生成 RAYA 每日肌膚日報 v4.1...")
-
-    # 1. 加載內容庫
     content_libs = load_content_libraries()
-    if not content_libs:
-        print("❌ 程序終止：無法加載內容庫。")
+    user_db = load_user_db()
+    
+    if not content_libs or not user_db:
+        print("❌ 失敗：內容庫或用戶資料庫為空")
         return
-    print("✅ 內容庫加載成功。")
 
-    # 2. 模擬用戶 ID（實際應從 LINE 用戶列表中獲取）
-    test_user_id = "U1234567890"
+    # 加載日誌以確保不重複
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, 'r', encoding='utf-8') as f:
+            usage_log = json.load(f)
+    else:
+        usage_log = {"usage_history": {}}
     
-    # 3. 為測試用戶生成訊息
-    final_message = generate_daily_message_for_user(test_user_id, content_libs)
+    used_ids = {f"{v['core_strategy_id']}-{v['third_module_id']}-{v['quote_id']}" for v in usage_log["usage_history"].values()}
+
+    success_count = 0
+    for user_id, info in user_db.items():
+        # ⭐ 關鍵邏輯：檢查訂閱狀態
+        is_subscribed = info.get("subscribed", True) # 沒寫的話預設 True 以相容舊資料
+        
+        if not is_subscribed:
+            print(f"⏭️ 跳過用戶 {user_id} (已取消訂閱)")
+            continue
+
+        try:
+            location = info.get("location", "台北")
+            coords = LOCATION_COORDINATES.get(location, LOCATION_COORDINATES["台北"])
+            weather = get_weather_data(coords["lat"], coords["lon"], location)
+            
+            selected = select_content(datetime.now(), weather, content_libs, used_ids)
+            
+            if selected:
+                final_msg = format_message(selected)
+                line_bot_api.push_message(user_id, TextSendMessage(text=final_msg))
+                success_count += 1
+                
+                # 更新今日日誌 (以最後一個成功發送的為準或共用)
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                cid = selected["composite_id"].split('-')
+                usage_log["usage_history"][today_str] = {
+                    "core_strategy_id": cid[0], "third_module_id": cid[1], "quote_id": f"{cid[2]}-{cid[3]}"
+                }
+                print(f"✅ 已發送給：{user_id} ({location})")
+        except Exception as e:
+            print(f"❌ 發送失敗 {user_id}: {e}")
+
+    with open(LOG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(usage_log, f, ensure_ascii=False, indent=2)
     
-    if not final_message:
-        print("❌ 無法生成訊息")
-        return
-    
-    # 4. 打印最終訊息
-    print("\n" + "="*40)
-    print("📬 最終推播訊息：")
-    print("="*40)
-    print(final_message)
-    print("="*40 + "\n")
-    
-    print("✅ RAYA 每日肌膚日報 v4.1 生成完畢！")
+    print(f"🎉 任務完成，成功推播人數：{success_count}")
 
 if __name__ == "__main__":
-    main()
+    # 如果是手動執行此腳本，直接跑一次推播
+    run_push_job()
