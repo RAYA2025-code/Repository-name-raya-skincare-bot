@@ -223,4 +223,4 @@ def run_push_job():
 
 if __name__ == "__main__":
     # 如果是手動執行此腳本，直接跑一次推播
-    run_push_job()
+   run_push_job()
