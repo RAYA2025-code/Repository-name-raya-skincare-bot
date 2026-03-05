@@ -201,20 +201,27 @@ def run_push_job():
             
             selected = select_content(datetime.now(), weather, content_libs, used_ids)
             
-            if selected:
+if selected:
                 final_msg = format_message(selected)
                 line_bot_api.push_message(user_id, TextSendMessage(text=final_msg))
                 success_count += 1
                 
-                # 更新今日日誌 (以最後一個成功發送的為準或共用)
+                # 更新今日日誌
                 today_str = datetime.now().strftime("%Y-%m-%d")
                 cid = selected["composite_id"].split('-')
                 usage_log["usage_history"][today_str] = {
-                    "core_strategy_id": cid[0], "third_module_id": cid[1], "quote_id": f"{cid[2]}-{cid[3]}"
-                }
-                print(f"✅ 已發送給：{user_id} ({location})")
+                    "core_strategy_id": cid[0], "third_module_id": cid[1], "quote_id": f"{cid[2]}-{cid[3]}"}
+                
+                # ✅ 優化：每成功發送一次就存檔，確保紀錄即時更新
+                with open(LOG_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(usage_log, f, ensure_ascii=False, indent=2)
+                
+                print(f"✅ 已發送並存檔：{user_id} ({location})")
         except Exception as e:
             print(f"❌ 發送失敗 {user_id}: {e}")
+
+    # 原本在最下面的這兩行就可以刪掉或保持留空了
+    print(f"🎉 任務完成，成功推播人數：{success_count}")
 
     with open(LOG_FILE, 'w', encoding='utf-8') as f:
         json.dump(usage_log, f, ensure_ascii=False, indent=2)
