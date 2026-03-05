@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-RAYA 迷你肌膚日報 - LINE Webhook 互動引擎 v2
-支持用戶地區設定和修改
+RAYA 迷你肌膚日報 - LINE Webhook 互動引擎 v2.1
+支持用戶地區設定和修改，並新增【訂閱/取消訂閱】功能
 """
 
 import json
@@ -33,10 +33,14 @@ line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # ============================================================================
-# 用戶數據庫（簡化版，實際應使用 MySQL / MongoDB）
+# 用戶數據庫配置
 # ============================================================================
-# 同樣使用自動獲取路徑的方法
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# 優先使用 Railway Volume 掛載路徑，確保資料持久化；若無則使用目前資料夾
+if os.path.exists("/app/data"):
+    BASE_DIR = "/app/data"
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 USER_DB_FILE = os.path.join(BASE_DIR, "user_locations.json")
 
 def load_user_db() -> Dict:
@@ -60,11 +64,21 @@ def get_user_location(user_id: str) -> Optional[str]:
     return db.get(user_id, {}).get("location")
 
 def set_user_location(user_id: str, location: str):
-    """設定用戶地區"""
+    """設定用戶地區，並預設開啟訂閱"""
     db = load_user_db()
     if user_id not in db:
         db[user_id] = {}
     db[user_id]["location"] = location
+    db[user_id]["subscribed"] = True  # ⭐ 新增：設定地區時自動視為已訂閱
+    db[user_id]["updated_at"] = datetime.now().isoformat()
+    save_user_db(db)
+
+def update_subscription(user_id: str, status: bool):
+    """⭐ 新增：更新用戶的推播訂閱狀態"""
+    db = load_user_db()
+    if user_id not in db:
+        db[user_id] = {"location": "台北"} # 預設地區
+    db[user_id]["subscribed"] = status
     db[user_id]["updated_at"] = datetime.now().isoformat()
     save_user_db(db)
 
@@ -94,16 +108,11 @@ LOCATION_MAP = {
 def normalize_location(text: str) -> Optional[str]:
     """規範化地區名稱，返回標準地區名稱"""
     text = text.strip()
-    
-    # 直接匹配
     if text in LOCATION_MAP:
         return text
-    
-    # 模糊匹配（例如「新竹市」→「新竹」）
     for location_name in LOCATION_MAP.keys():
         if location_name in text:
             return location_name
-    
     return None
 
 # ============================================================================
@@ -111,55 +120,28 @@ def normalize_location(text: str) -> Optional[str]:
 # ============================================================================
 
 def handle_location_change(user_id: str, text: str) -> Optional[str]:
-    """
-    處理地區修改請求
-    
-    觸發詞語：
-    - 「我在 [地區]」
-    - 「改變地區 [地區]」
-    - 「設定地區 [地區]」
-    - 「我要改」
-    - 「查詢地區」
-    """
-    
-    # 模式 1：「我在 [地區]」
-    match = re.search(r'我在(.+)', text)
-    if match:
-        location_text = match.group(1)
-        location = normalize_location(location_text)
-        if location:
-            set_user_location(user_id, location)
-            return f"✅ 已更新！您的地區現在是『{location}』。\n從明天開始，我會為您推送{location}的肌膚日報喔 💚"
-        else:
-            return f"抱歉，我沒有找到『{location_text}』。\n請確認地區名稱是否正確，或從以下清單中選擇：\n台北、新北、桃園、新竹、苗栗、台中、彰化、南投、雲林、嘉義、台南、高雄、屏東、宜蘭、花蓮、台東"
-    
-    # 模式 2：「改變地區 [地區]」
-    match = re.search(r'改變地區\s*(.+)', text)
-    if match:
-        location_text = match.group(1)
-        location = normalize_location(location_text)
-        if location:
-            set_user_location(user_id, location)
-            return f"✅ 已更新！您的地區現在是『{location}』。\n從明天開始，我會為您推送{location}的肌膚日報喔 💚"
-        else:
-            return f"抱歉，我沒有找到『{location_text}』。\n請確認地區名稱是否正確，或從以下清單中選擇：\n台北、新北、桃園、新竹、苗栗、台中、彰化、南投、雲林、嘉義、台南、高雄、屏東、宜蘭、花蓮、台東"
-    
-    # 模式 3：「設定地區 [地區]」
-    match = re.search(r'設定地區\s*(.+)', text)
-    if match:
-        location_text = match.group(1)
-        location = normalize_location(location_text)
-        if location:
-            set_user_location(user_id, location)
-            return f"✅ 已更新！您的地區現在是『{location}』。\n從明天開始，我會為您推送{location}的肌膚日報喔 💚"
-        else:
-            return f"抱歉，我沒有找到『{location_text}』。\n請確認地區名稱是否正確，或從以下清單中選擇：\n台北、新北、桃園、新竹、苗栗、台中、彰化、南投、雲林、嘉義、台南、高雄、屏東、宜蘭、花蓮、台東"
+    """處理地區修改請求"""
+    # 模式 1-3：「我在 [地區]」、「改變地區 [地區]」、「設定地區 [地區]」
+    for pattern in [r'我在(.+)', r'改變地區\s*(.+)', r'設定地區\s*(.+)']:
+        match = re.search(pattern, text)
+        if match:
+            location_text = match.group(1)
+            location = normalize_location(location_text)
+            if location:
+                set_user_location(user_id, location)
+                return f"✅ 已更新！您的地區現在是『{location}』。\n從明天開始，我會為您推送{location}的肌膚日報喔 💚"
+            else:
+                return f"抱歉，我沒有找到『{location_text}』。\n請確認地區名稱是否正確，或從以下清單中選擇：\n台北、新北、桃園、新竹、苗栗、台中、彰化、南投、雲林、嘉義、台南、高雄、屏東、宜蘭、花蓮、台東"
     
     # 模式 4：「查詢地區」
     if any(keyword in text for keyword in ["查詢地區", "我的地區", "目前地區", "現在地區", "我在哪"]):
         current_location = get_user_location(user_id)
         if current_location:
-            return f"✅ 您目前的地區設定是『{current_location}』。\n如果需要改變，隨時告訴我喔 💚"
+            # 順便檢查訂閱狀態
+            db = load_user_db()
+            is_sub = db.get(user_id, {}).get("subscribed", True)
+            status_text = "🟢 接收推播中" if is_sub else "⏸️ 推播已暫停"
+            return f"✅ 您目前的地區設定是『{current_location}』。\n目前的推播狀態：{status_text}\n如果需要改變，隨時告訴我喔 💚"
         else:
             return "您還沒有設定地區。請告訴我您在哪裡呢？（例如：台中、高雄、台南...）"
     
@@ -178,12 +160,10 @@ def callback():
     """LINE Webhook 回調"""
     signature = request.headers.get("X-Line-Signature", "")
     body = request.get_data(as_text=True)
-    
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
-    
     return "OK"
 
 # ============================================================================
@@ -195,7 +175,9 @@ def handle_follow(event):
     """用戶加入好友時的處理"""
     user_id = event.source.user_id
     
-    # 發送歡迎訊息和地區詢問
+    # ⭐ 新增：用戶一加入，預設將其存入資料庫並開啟訂閱
+    update_subscription(user_id, True)
+    
     welcome_message = """嗨親愛的，歡迎加入 RAYA！💚
 
 我是您的肌膚日報助手，每天都會根據您所在地區的天氣，為您推送個人化的肌膚護理建議。
@@ -204,12 +186,13 @@ def handle_follow(event):
 （例如：台北、台中、高雄、台南...）
 
 支持的地區：
-台北、新北、桃園、新竹、苗栗、台中、彰化、南投、雲林、嘉義、台南、高雄、屏東、宜蘭、花蓮、台東
+台北、新北、桃園、新竹、苗栗、台中、彰化、南投...等台灣縣市。
 
-設定完成後，您可以隨時發送以下指令修改地區：
-✓ 「我在 [地區]」
-✓ 「改變地區 [地區]」
-✓ 「查詢地區」
+👉 您可以隨時發送以下指令與我互動：
+✓ 「我在 [地區]」：修改您的所在地區
+✓ 「查詢地區」：查看目前設定
+✓ 「取消推播」：暫停接收每日日報
+✓ 「恢復推播」：重新開啟日報接收
 
 讓我們一起照顧肌膚，也照顧自己吧！"""
     
@@ -220,19 +203,37 @@ def handle_follow(event):
 
 @handler.add(UnfollowEvent)
 def handle_unfollow(event):
-    """用戶取消追蹤時的處理"""
+    """用戶取消追蹤（封鎖）時的處理"""
     user_id = event.source.user_id
     db = load_user_db()
     if user_id in db:
-        del db[user_id]
+        # 不一定要刪除，可以標記為未訂閱就好
+        db[user_id]["subscribed"] = False
         save_user_db(db)
-    print(f"用戶 {user_id} 已取消追蹤")
+    print(f"用戶 {user_id} 已取消追蹤/封鎖")
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     """處理用戶訊息"""
     user_id = event.source.user_id
-    text = event.message.text
+    text = event.message.text.strip()
+    
+    # ⭐ 新增：優先處理訂閱/取消訂閱的指令
+    if text in ["取消推播", "取消訂閱", "停止推播", "暫停推播"]:
+        update_subscription(user_id, False)
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="⏸️ 已為您暫停每日肌膚日報推播。\n若想恢復，請隨時發送「恢復推播」喔 💚")
+        )
+        return
+
+    if text in ["恢復推播", "恢復訂閱", "重新推播", "開啟推播"]:
+        update_subscription(user_id, True)
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="▶️ 已為您恢復每日肌膚日報推播！\n明天早上見 💚")
+        )
+        return
     
     # 嘗試處理地區修改
     location_response = handle_location_change(user_id, text)
@@ -243,15 +244,16 @@ def handle_message(event):
             TextSendMessage(text=location_response)
         )
     else:
-        # 其他訊息的處理（可擴展）
+        # 其他訊息的預設回覆
         default_response = """感謝您的訊息！
 
 如果您想修改地區，可以發送：
 ✓ 「我在 [地區]」
-✓ 「改變地區 [地區]」
 ✓ 「查詢地區」
 
-更多詳細資訊，請查看『地區修改指南』。
+若想管理推播狀態，可以發送：
+✓ 「取消推播」
+✓ 「恢復推播」
 
 RAYA—有感的肌膚進化 💚"""
         
@@ -267,4 +269,3 @@ RAYA—有感的肌膚進化 💚"""
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-
