@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Tuple
 import requests
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
-
+from apscheduler.schedulers.blocking import BlockingScheduler
 # ============================================================================
 # 全局配置
 # ============================================================================
@@ -222,5 +222,19 @@ def run_push_job():
     print(f"🎉 任務完成，成功推播人數：{success_count}")
 
 if __name__ == "__main__":
-    # 如果是手動執行此腳本，直接跑一次推播
-   run_push_job()
+    # 建立排程器（設定台灣時區，確保 08:00 是台灣時間）
+    scheduler = BlockingScheduler(timezone="Asia/Taipei")
+    
+    # 【測試模式】如果你想重啟後立刻先推播一次檢查效果，請取消下面這行的註解 #
+    # run_push_job() 
+
+    # 設定排程：每天早上 08:00 執行一次
+    scheduler.add_job(run_push_job, 'cron', hour=8, minute=0)
+    
+    print("🚀 RAYA 每日推播 Worker 已啟動...")
+    print("📅 排程設定：每天 08:00 (Asia/Taipei)")
+    
+    try:
+        scheduler.start()
+    except (KeyboardInterrupt, SystemExit):
+        print("⏸️ 排程服務已停止。")
