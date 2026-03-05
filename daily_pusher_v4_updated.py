@@ -17,7 +17,8 @@ import requests
 # ============================================================================
 # 全局配置
 # ============================================================================
-CONTENT_PATH = "/home/ubuntu/"
+# 自動獲取目前程式碼所在的資料夾路徑
+CONTENT_PATH = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(CONTENT_PATH, "usage_log.json")
 USER_DB_FILE = os.path.join(CONTENT_PATH, "user_locations.json")
 
