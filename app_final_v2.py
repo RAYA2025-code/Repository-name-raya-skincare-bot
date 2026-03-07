@@ -86,8 +86,19 @@ def get_weather_data(lat, lon, location):
         return {"temp": 25, "humidity": 60, "desc": "晴朗"}
 
 def run_push_job():
-    """定時任務：每天早上 08:00 執行"""
+    """定時任務：根據天氣自動挑選專業對策"""
     print(f"⏰ 推播任務啟動：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 1. 加載專業內容庫 (請確保 GitHub 根目錄有這個 json 檔案)
+    try:
+        # 假設你的檔名為 core_strategies_v2.json
+        content_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "core_strategies_v2.json")
+        with open(content_path, 'r', encoding='utf-8') as f:
+            strategies = json.load(f)
+    except Exception as e:
+        print(f"❌ 無法讀取內容庫: {e}")
+        return
+
     user_db = load_user_db()
     if not user_db: return
 
@@ -100,17 +111,40 @@ def run_push_job():
             coords = LOCATION_COORDINATES.get(location, LOCATION_COORDINATES["台北"])
             weather = get_weather_data(coords["lat"], coords["lon"], location)
             
-            # 這裡可以根據 weather 數據判斷推送內容
-            # 簡化版：直接發送保養提醒
-            msg = f"🌸 芮亞(Rui Ya)肌膚日報\n\n早安！今天{location}的天氣為「{weather['desc']}」，氣溫約 {weather['temp']}°C。\n濕度為 {weather['humidity']}%，建議今日重點：{'加強控油' if weather['humidity'] > 70 else '加強保濕'} 💚"
+            # --- 核心邏輯：判斷天氣情境 ---
+            temp = weather['temp']
+            humi = weather['humidity']
+            
+            if temp >= 28:
+                scenario = "wet_heat" if humi > 60 else "dry_heat"
+            elif temp < 15:
+                scenario = "wet_cold" if humi > 60 else "dry_cold"
+            else:
+                scenario = "seasonal"
+            
+            # 從對應分類隨機挑選一則對策
+            import random
+            selected_tip = random.choice(strategies[scenario])
+            
+            # --- 組合專業文案 ---
+            msg = (
+                f"🌸 RAYA 迷你肌膚日報｜{location}\n\n"
+                f"🌡️ 氣溫 {temp}°C / 💧 濕度 {humi}%\n"
+                f"☁️ 天氣狀況：{weather['desc']}\n\n"
+                f"｜核心肌膚對策｜\n"
+                f"• {selected_tip['content']}\n\n"
+                f"｜建議動作｜\n"
+                f"{' / '.join(selected_tip['actions'])}\n\n"
+                f"讓肌膚與天氣和諧共處 💚"
+            )
             
             line_bot_api.push_message(user_id, TextSendMessage(text=msg))
             success_count += 1
+            
         except Exception as e:
             print(f"❌ 推播失敗 {user_id}: {e}")
 
     print(f"🎉 任務完成，成功推播人數：{success_count}")
-
 # ============================================================================
 # 4. LINE 訊息處理器 (Web 回覆部分)
 # ============================================================================
