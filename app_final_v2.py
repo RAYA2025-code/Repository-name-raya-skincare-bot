@@ -1,38 +1,22 @@
-#!/usr/bin/env python3.11
-# -*- coding: utf-8 -*-
-from filelock import FileLock
-
-"""
-RAYA 迷你肌膚日報 - LINE Webhook 互動引擎 v2.1
-支持用戶地區設定和修改，並新增【訂閱/取消訂閱】功能
-"""
-
-import json
 import os
-import re
+import json
+import requests
 from datetime import datetime
-from typing import Dict, Optional
-
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
-    FollowEvent, UnfollowEvent
-)
-
-# ============================================================================
-# Flask 應用初始化
-# ============================================================================
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
+# 👇 這是新加入的排程工具
+from apscheduler.schedulers.background import BackgroundScheduler
+from filelock import FileLock
 
 app = Flask(__name__)
 
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET")
-
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
-
+# --- 設定區 ---
+USER_DB_FILE = 'user_locations.json'
+LOG_FILE = 'usage_log.json'
+# 請確保這裡的路徑與你 GitHub 上的資料夾名稱一致
+CONTENT_DIR = 'content_libraries'
 # ============================================================================
 # 用戶數據庫配置
 # ============================================================================
