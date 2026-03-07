@@ -137,21 +137,37 @@ def handle_message(event):
     user_id = event.source.user_id
     text = event.message.text.strip()
     
-    # 簡易地區設定邏輯
+    # --- 1. 優先處理「測試推播」指令 ---
+    if text == "測試推播":
+        # 執行推播功能
+        run_push_job()
+        # 回覆測試訊息 (注意：這裡直接 return，不跑後面的邏輯)
+        line_bot_api.reply_message(
+            event.reply_token, 
+            TextSendMessage(text="🚀 已手動觸發全體推播測試！請檢查手機是否有收到日報。")
+        )
+        return
+
+    # --- 2. 處理「設定地區」邏輯 ---
     if "我在" in text or "地區" in text:
-        # 簡單提取地名（這裡可優化為正則表達式）
+        # 簡單提取地名
         new_loc = text.replace("我在", "").replace("地區", "").strip()[:2]
         if new_loc in LOCATION_COORDINATES:
             update_subscription(user_id, True, new_loc)
             response = f"✅ 已記錄！您的地區是 {new_loc}。明天 08:00 見！"
         else:
             response = "目前僅支援台灣主要縣市，請輸入正確的地名（如：台北、台中）。"
+            
+    # --- 3. 處理「取消推播」邏輯 ---
     elif text == "取消推播":
         update_subscription(user_id, False)
         response = "已暫停每日推播，期待下次再為您服務 💚"
+        
+    # --- 4. 其他任何訊息的預設回覆 ---
     else:
-        response = "想修改地區嗎？請輸入「我在台北」或「我在台中」！"
-    
+        response = "想修改地區嗎？請輸入「我在台北」或「我在台中」！\n\n目前的秘密測試指令：發送「測試推播」"
+
+    # 最後統一發送回覆訊息 (除非前面已經 return 了)
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=response))
 
 # ============================================================================
