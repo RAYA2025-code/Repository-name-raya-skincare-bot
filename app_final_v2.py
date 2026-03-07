@@ -138,9 +138,35 @@ def handle_location_change(user_id: str, text: str) -> Optional[str]:
     
     return None
 
-# ============================================================================
-# Webhook 路由
-# ============================================================================
+def run_push_job():
+    """核心推播任務：由排程器定時觸發"""
+    print(f"⏰ 推播啟動：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # 1. 讀取用戶資料 (與 Web 服務共用同一個檔案)
+    if not os.path.exists(USER_DB_FILE):
+        print("❌ 錯誤：找不到用戶資料檔")
+        return
+    with open(USER_DB_FILE, 'r', encoding='utf-8') as f:
+        user_db = json.load(f)
+
+    # 2. 執行推播迴圈
+    success_count = 0
+    for user_id, info in user_db.items():
+        if not info.get("subscribed", True):
+            continue
+            
+        try:
+            # 這裡縮寫原本的 select_content 邏輯
+            # 為了簡潔，假設你已將原本 daily_pusher 的其餘函數(如 get_weather)也貼在此處
+            location = info.get("location", "台北")
+            msg = f"🌸 RAYA肌膚日報：今天{location}的天氣適合加強保濕喔！"
+            
+            line_bot_api.push_message(user_id, TextSendMessage(text=msg))
+            success_count += 1
+        except Exception as e:
+            print(f"❌ 發送失敗 {user_id}: {e}")
+
+    print(f"🎉 任務完成，成功推播人數：{success_count}")
 
 @app.route("/callback", methods=['POST'])
 def callback():
