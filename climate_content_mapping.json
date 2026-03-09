@@ -1,0 +1,341 @@
+{
+  "climate_events": {
+    "humid_hot_week": {
+      "name": "濕熱週",
+      "description": "連續 3 天濕度 > 70% 且溫度 > 28°C",
+      "strategy": "溫和潔面、控油型精華、深層清潔面膜"
+    },
+    "humid_week": {
+      "name": "潮濕週",
+      "description": "連續 3 天濕度 > 65%，溫度 20–27°C",
+      "strategy": "清爽型保濕、輕度控油、維持毛孔清潔"
+    },
+    "dry_cold_week": {
+      "name": "乾冷週",
+      "description": "連續 3 天溫度 < 15°C，濕度 < 50%",
+      "strategy": "高保濕精華、滋潤型面霜、屏障修護"
+    },
+    "dry_windy_week": {
+      "name": "乾燥風週",
+      "description": "連續 3 天濕度 < 45% 且風速 > 6 m/s",
+      "strategy": "加強保濕、避免去角質、修護屏障"
+    },
+    "high_uv_week": {
+      "name": "高紫外線週",
+      "description": "連續 3 天 UV Index > 6",
+      "strategy": "防曬 SPF30+、抗氧化保養、夜間修復"
+    },
+    "temp_fluctuation_week": {
+      "name": "溫差震盪週",
+      "description": "連續 3 天日夜溫差 > 10°C",
+      "strategy": "基礎保濕、減少活性成分、避免更換產品"
+    },
+    "pollution_week": {
+      "name": "污染週",
+      "description": "連續 3 天 AQI > 100",
+      "strategy": "深層清潔、抗氧化保養、屏障修護"
+    },
+    "rain_week": {
+      "name": "連雨週",
+      "description": "連續 3 天降雨機率 > 70%",
+      "strategy": "溫和潔面、舒緩型保養、避免過度保養"
+    },
+    "hot_humid_city_week": {
+      "name": "悶熱城市週",
+      "description": "連續 3 天溫度 > 32°C 且濕度 > 65%",
+      "strategy": "清潔控油、輕薄保濕、避免厚重產品"
+    },
+    "cold_warm_alternating_week": {
+      "name": "冷暖交替週",
+      "description": "連續 3 天平均溫度波動 > 8°C",
+      "strategy": "穩定保濕、減少活性成分、避免新產品"
+    },
+    "seasonal_sensitive_week": {
+      "name": "換季敏感週",
+      "description": "7 天內平均溫度變化 > 10°C",
+      "strategy": "舒緩抗敏、溫和清潔、屏障修護"
+    },
+    "ac_room_week": {
+      "name": "長時間空調週",
+      "description": "室內溫度 < 23°C 且濕度 < 50%，每天超過 8 小時",
+      "strategy": "高補水精華、厚塗面霜、夜間修復面膜"
+    }
+  },
+  "content_mapping": {
+    "content_1": {
+      "title": "面膜天天敷｜反而越敷越乾",
+      "content": "過度敷面膜會讓角質層過度吸水，削弱屏障，水分流失更快。一週1-2次就夠了，貪心反而傷肌膚。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week",
+        "hot_humid_city_week"
+      ]
+    },
+    "content_2": {
+      "title": "防曬會堵塞毛孔｜真兇其實是沒卸乾淨",
+      "content": "很多人怪防曬導致痘痘，其實是沒有徹底卸妝。防曬需要用溫和卸妝油才能完全洗淨，做好清潔，防曬絕對是你的好朋友。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "high_uv_week",
+        "pollution_week"
+      ]
+    },
+    "content_3": {
+      "title": "保養品疊越多越好｜其實是在堵塞毛孔",
+      "content": "精華、乳液、面霜、美容油一層層往臉上疊，肌膚吸收能力有限，過多產品只會在表面堆積，反而引發悶痘。2-3款真正適合你的產品，效果反而更好。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week",
+        "hot_humid_city_week"
+      ]
+    },
+    "content_4": {
+      "title": "磨砂膏去角質｜其實在慢性傷害肌膚",
+      "content": "頻繁用磨砂膏是在肌膚表面留下肉眼看不見的微小傷口。用溫和的化學去角質（低濃度果酸或酵素）讓老廢角質自然代謝，才是聰明做法。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "dry_cold_week",
+        "dry_windy_week",
+        "seasonal_sensitive_week"
+      ]
+    },
+    "content_5": {
+      "title": "一天洗好幾次臉｜越洗越油的惡性循環",
+      "content": "油性肌最怕出油，所以一直洗臉？這樣反而會洗去天然皮脂膜，大腦接收到『缺油』訊號後，反而分泌更多油脂。溫和清潔加適度保濕，才是真正的控油之道。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week",
+        "hot_humid_city_week"
+      ]
+    },
+    "content_6": {
+      "title": "純天然產品最安全｜對敏感肌可能反而有風險",
+      "content": "『純天然、無添加』聽起來很安全，但天然植物成分複雜，反而可能含有潛在過敏原。有時候經過科學純化的簡單配方，對敏感肌反而更安全。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "seasonal_sensitive_week",
+        "rain_week"
+      ]
+    },
+    "content_7": {
+      "title": "晚霜要厚敷｜肌膚也需要呼吸",
+      "content": "睡前塗厚厚一層晚霜，過厚重的油脂會阻礙肌膚代謝，甚至影響皮脂分泌。適量晚霜輕輕按摩至吸收，讓肌膚能輕鬆自我修復。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week"
+      ]
+    },
+    "content_8": {
+      "title": "一週見效的美白產品｜通常是在傷害肌膚",
+      "content": "追求快速美白的產品，往往含有高濃度刺激成分。肌膚代謝週期是28天，任何宣稱瞬間改變膚色的東西都有問題。耐心用溫和美白成分加防曬，才是長久之計。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "high_uv_week",
+        "pollution_week"
+      ]
+    },
+    "content_9": {
+      "title": "眼霜只是貴的面霜｜其實有大不同",
+      "content": "眼部肌膚極度薄弱，缺乏皮脂腺，更容易乾燥和細紋。專為眼部設計的眼霜，分子更小、質地更易吸收。細紋出現前就用，才是聰明投資。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "dry_cold_week",
+        "dry_windy_week",
+        "ac_room_week"
+      ]
+    },
+    "content_10": {
+      "title": "看到痘痘就擠｜留下的是永久印記",
+      "content": "擠痘痘會把細菌推向深層，引發更嚴重發炎，還會破壞真皮層留下痘疤。用含水楊酸或茶樹精油的局部產品，讓痘痘自然消退才是正確做法。",
+      "category": "RAYA 迷思破解",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week",
+        "pollution_week"
+      ]
+    },
+    "content_11": {
+      "title": "屏障受損的五個信號｜出現三個就要停損",
+      "content": "經常泛紅發熱？平時的保養品突然刺痛？容易長不明原因的小疹子？洗完臉異常乾繃？對溫度變化極度敏感？符合三個以上，你的屏障可能受損了，現在最需要的是『停損』和『修復』。",
+      "category": "RAYA 護膚陷阱",
+      "suitable_events": [
+        "dry_cold_week",
+        "seasonal_sensitive_week",
+        "cold_warm_alternating_week"
+      ]
+    },
+    "content_12": {
+      "title": "敏感肌vs過敏肌｜持續時間是關鍵",
+      "content": "敏感是一種肌膚狀態，容易受刺激；過敏是免疫反應，通常對特定成分產生。停用某產品後，症狀幾天內消退？那是過敏。肌膚長期不穩定？那是敏感肌，需要長期溫和調理。",
+      "category": "RAYA 護膚陷阱",
+      "suitable_events": [
+        "seasonal_sensitive_week",
+        "rain_week"
+      ]
+    },
+    "content_13": {
+      "title": "隱形的紫外線傷害｜表面看不出來的危機",
+      "content": "表面沒斑點不代表沒受傷害。很多黑色素潛伏在肌膚底層，等著浮出來。膚色變不均或容易泛紅，都是紫外線傷害的初期表現。堅持防曬，才能阻止隱形斑點浮出。",
+      "category": "RAYA 護膚陷阱",
+      "suitable_events": [
+        "high_uv_week"
+      ]
+    },
+    "content_14": {
+      "title": "壓力肌膚症候群｜情緒直接寫在臉上",
+      "content": "最近壓力大？壓力會導致皮質醇分泌旺盛，皮脂分泌增加引發成人痘，同時減緩肌膚修復能力讓膚色暗沉。肌膚狀況隨情緒起伏變差時，除了調整保養品，更要給自己放鬆的空間。",
+      "category": "RAYA 護膚陷阱",
+      "suitable_events": [
+        "humid_hot_week",
+        "pollution_week"
+      ]
+    },
+    "content_15": {
+      "title": "換季不適的預警｜提前兩週開始佈署",
+      "content": "每到換季肌膚就作怪？溫度和濕度劇烈變化讓肌膚調節跟不上。在季節交替前兩週就開始調整：春季加強舒緩抗敏，秋季提早深層保濕。提前佈署，才能安然度過換季。",
+      "category": "RAYA 護膚陷阱",
+      "suitable_events": [
+        "seasonal_sensitive_week",
+        "cold_warm_alternating_week"
+      ]
+    },
+    "content_16": {
+      "title": "真乾還是假乾｜洗臉後15分鐘見真章",
+      "content": "洗完臉不擦任何東西，等15分鐘。全臉緊繃有脫屑？那是真乾肌。只有兩頰緊繃但T字開始出油？那是外油內乾的混合肌。知道自己的真實膚況，才能選對產品。",
+      "category": "RAYA 護膚秘訣",
+      "suitable_events": [
+        "dry_cold_week",
+        "dry_windy_week",
+        "ac_room_week"
+      ]
+    },
+    "content_17": {
+      "title": "毛孔粗大分類｜對症下藥才有效",
+      "content": "出油旺盛導致的『U型毛孔』需要清潔加控油；老化鬆弛導致的『水滴型毛孔』需要膠原蛋白和緊緻成分；擠痘痘留下的『器質性毛孔』保養品效果有限。找對原因，才能有效改善。",
+      "category": "RAYA 護膚秘訣",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week"
+      ]
+    },
+    "content_18": {
+      "title": "膚色不均的真正原因｜別盲目美白",
+      "content": "臉色灰灰暗暗？先別急著買美白精華。角質堆積需要去角質、乾燥缺水需要保濕、熬夜血液循環不良需要按摩和作息調整。找對原因，肌膚自然透亮。",
+      "category": "RAYA 護膚秘訣",
+      "suitable_events": [
+        "pollution_week",
+        "high_uv_week"
+      ]
+    },
+    "content_19": {
+      "title": "搓泥現象的真相｜不一定是產品的錯",
+      "content": "擦完保養品臉上搓出白白泥屑？可能是角質層太厚阻礙吸收，也可能是產品成分與後續防曬或底妝衝突。試試減少用量、延長吸收時間，或定期去角質。",
+      "category": "RAYA 護膚秘訣",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week"
+      ]
+    },
+    "content_20": {
+      "title": "開始老化的信號｜不只是皺紋那麼簡單",
+      "content": "第一個老化信號往往不是皺紋，而是『恢復力變差』。睡醒後的枕頭印很久才消、熬夜後的暗沉要好幾天才恢復、下顎線開始模糊。這時候就該開始用抗老成分了。",
+      "category": "RAYA 護膚秘訣",
+      "suitable_events": [
+        "high_uv_week",
+        "pollution_week"
+      ]
+    },
+    "content_21": {
+      "title": "早晨三分鐘護膚｜高效防禦的極簡方案",
+      "content": "早晨時間寶貴？清水洗臉、一瓶兼具保濕和抗氧化的精華液、足量防曬乳。這三步已經足夠為肌膚建立一整天對抗污染和紫外線的盾牌。簡單有效，才是真正的聰明護膚。",
+      "category": "RAYA 日常修護",
+      "suitable_events": [
+        "high_uv_week",
+        "pollution_week"
+      ]
+    },
+    "content_22": {
+      "title": "夜間深度修護｜睡眠期間的肌膚重建",
+      "content": "夜晚是肌膚細胞分裂修復最旺盛的時刻。卸除一天疲憊後，給予肌膚最需要的營養。白天受日曬就夜間舒緩保濕，近期肌膚鬆弛就用抗老精華。配合規律睡眠，讓保養品發揮最大效用。",
+      "category": "RAYA 日常修護",
+      "suitable_events": [
+        "dry_cold_week",
+        "dry_windy_week"
+      ]
+    },
+    "content_23": {
+      "title": "運動後的肌膚對策｜汗水清潔的黃金時間",
+      "content": "運動流汗促進代謝對肌膚有益，但汗水中的鹽分和代謝物停留太久會刺激肌膚。運動後盡快用溫水和溫和洗面乳清潔，立即補充水分。避免馬上用刺激性產品，讓發熱肌膚先冷靜。",
+      "category": "RAYA 日常修護",
+      "suitable_events": [
+        "humid_hot_week",
+        "hot_humid_city_week"
+      ]
+    },
+    "content_24": {
+      "title": "冷氣房保濕戰略｜對抗隱形乾燥",
+      "content": "長時間待在冷氣房，肌膚水分不知不覺被抽乾。除了多喝水，辦公桌準備保濕噴霧，但記得噴完要輕輕按壓吸收，並補擦含油脂的乳液來鎖水。",
+      "category": "RAYA 日常修護",
+      "suitable_events": [
+        "dry_cold_week",
+        "ac_room_week"
+      ]
+    },
+    "content_25": {
+      "title": "熬夜隔天急救｜依然能發光的秘密",
+      "content": "無可避免熬夜後，隔天早晨用含咖啡因或綠茶萃取的眼霜改善眼部浮腫；全臉用含維他命C或提亮成分的精華液迅速喚醒光澤。這只是急救，補足睡眠才是根本。",
+      "category": "RAYA 日常修護",
+      "suitable_events": [
+        "pollution_week"
+      ]
+    },
+    "content_26": {
+      "title": "生理期護膚節奏｜順應賀爾蒙的變化",
+      "content": "月經前一週皮脂分泌旺盛容易長痘，著重清潔控油；月經期間肌膚脆弱乾燥，以溫和保濕為主；月經結束後一週肌膚狀態最好，這時用高機能精華液吸收效果最佳。",
+      "category": "RAYA 習慣養成",
+      "suitable_events": [
+        "humid_hot_week",
+        "humid_week"
+      ]
+    },
+    "content_27": {
+      "title": "吃出透亮好氣色｜飲食與膚質的對話",
+      "content": "吃進去的東西都會反映在臉上。過多糖分導致肌膚『糖化』加速老化，高升糖食物容易引發痘痘。多吃富含維他命C、E的抗氧化食物和健康油脂，能從內而外提升肌膚防禦力和光澤。",
+      "category": "RAYA 習慣養成",
+      "suitable_events": [
+        "pollution_week",
+        "high_uv_week"
+      ]
+    },
+    "content_28": {
+      "title": "藍光防護｜螢幕前的隱形傷害",
+      "content": "每天面對電腦和手機的藍光，雖然能量不如紫外線強，但長時間照射仍會產生自由基導致暗沉和提早老化。在保養中加入含抗氧化成分的產品，能有效中和藍光傷害。",
+      "category": "RAYA 習慣養成",
+      "suitable_events": [
+        "pollution_week"
+      ]
+    },
+    "content_29": {
+      "title": "睡眠姿勢與臉部線條｜枕頭上的保養學",
+      "content": "習慣側睡會導致臉部肌膚受擠壓，容易產生難以消除的『睡眠紋』。盡量練習仰睡，或選擇絲綢枕套減少摩擦，不僅能減少對臉部拉扯，也能保護頭髮。",
+      "category": "RAYA 護膚心法",
+      "suitable_events": [
+        "dry_cold_week",
+        "dry_windy_week"
+      ]
+    },
+    "content_30": {
+      "title": "深呼吸的美容效應｜情緒排毒與肌膚健康",
+      "content": "壓力和焦慮是肌膚的隱形殺手。緊張時身體進入『戰鬥或逃跑』模式，血液流向肌肉減少對肌膚供應，導致面色蒼白或暗沉。每天五分鐘深呼吸或冥想，不僅放鬆心情，也能促進血液循環讓肌膚恢復紅潤。",
+      "category": "RAYA 護膚心法",
+      "suitable_events": [
+        "humid_hot_week",
+        "seasonal_sensitive_week"
+      ]
+    }
+  }
+}
