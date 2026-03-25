@@ -53,9 +53,9 @@ def handle_follow(event):
     welcome_text = "很高興在 RAYA 與您相遇。\n\n請告訴我您的居住城市（例如：「我在台北」），我們將於每日早晨送上「RAYA 迷你肌膚日報」。"
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=welcome_text))
 
-# --- 第 79 行 ---
-    elif txt == "取消推播":
+elif txt == "取消推播":
         update_subscription(uid, False)
+        # 稱謂修正：妳 -> 您
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="已為您停止每日推播，RAYA 隨時歡迎您回來。"))
 
 if __name__ == "__main__":
